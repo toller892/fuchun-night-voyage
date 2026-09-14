@@ -5,10 +5,10 @@ const mobile=matchMedia('(pointer:coarse)').matches,reduced=matchMedia('(prefers
 const state={entered:false,auto:false,rain:false,sound:false,lanterns:0,x:0,z:34,yaw:0,pitch:.06,loaded:false,overview:false,orbit:.65,elevation:.62,zoom:72,heading:0};
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});}catch(e){$('#loading small').textContent='此浏览器暂不支持三维画面，请使用新版 Chrome 或 Safari。';throw e;}
-renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.5:1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;$('#world').appendChild(renderer.domElement);
-const scene=new THREE.Scene();scene.background=new THREE.Color('#486e6b');scene.fog=new THREE.FogExp2('#486e6b',.0047);
-scene.add(new THREE.HemisphereLight(0xbdd9cb,0x203432,2.2));
-const sunlight=new THREE.DirectionalLight(0xffdba6,2.4);sunlight.position.set(-45,85,35);scene.add(sunlight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,mobile?1.5:1.7));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;$('#world').appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#789d9b');scene.fog=new THREE.FogExp2('#789d9b',.0047);
+scene.add(new THREE.HemisphereLight(0xd2e6ef,0x4c5938,1.7));
+const sunlight=new THREE.DirectionalLight(0xffdfa6,3.2);sunlight.position.set(-45,85,35);scene.add(sunlight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;sunlight.castShadow=true;sunlight.shadow.mapSize.set(2048,2048);Object.assign(sunlight.shadow.camera,{left:-65,right:65,top:65,bottom:-65,near:1,far:230});sunlight.shadow.bias=-.0003;sunlight.shadow.normalBias=.15;
 const rim=new THREE.DirectionalLight(0x91c4c1,1.2);rim.position.set(60,30,-80);scene.add(rim);
 const camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.15,850);camera.position.set(0,5,34);
 const world=createWorld(scene,mobile),clock=new THREE.Clock();
@@ -61,7 +61,7 @@ for(const l of lanternItems){if(l.personal&&!reduced&&world.canMove(l.x,l.z-dt*.
 for(let i=0;i<particleSeed.length;i++){particleData[i*3]=particleSeed[i][0]+Math.sin(t*.3+i)*.8;particleData[i*3+1]=particleSeed[i][1]+Math.sin(t*.4+i*2)*.45;}particleGeo.attributes.position.needsUpdate=true;
 rain.position.set(state.x,0,state.z);if(state.rain&&!reduced){for(let i=0;i<600;i++){rainData[i*6+1]-=dt*15;rainData[i*6+4]-=dt*15;if(rainData[i*6+1]<0){rainData[i*6+1]=45;rainData[i*6+4]=45.8;}}rainGeo.attributes.position.needsUpdate=true;}
 const chapter=state.z>0?0:state.z>-65?1:2;if(chapter!==lastChapter){lastChapter=chapter;$('#chapter').textContent=['第一境 · 松风渡口','第二境 · 隔岸人家','第三境 · 月下江心'][chapter];$('#verse').textContent=['把尘嚣，留在岸上。','灯火可亲，山水可居。','行到水穷处，坐看云起时。'][chapter];}$('#distance').textContent=state.entered?`离岸 ${Math.round(Math.hypot(state.x,state.z-34))} 米`:'卷首';renderer.render(scene,camera);
-}frame();state.loaded=true;$('#enter').disabled=false;$('#enter').innerHTML='乘舟入画 <span>↗</span>';$('#loading').style.opacity='0';setTimeout(()=>$('#loading').remove(),650);
+}frame();world.assetsReady.then(()=>{state.loaded=true;$('#enter').disabled=false;$('#enter').innerHTML='乘舟入画 <span>↗</span>';$('#loading').style.opacity='0';setTimeout(()=>$('#loading').remove(),650);}).catch(e=>{console.error(e);$('#loading small').textContent='场景素材未加载成功，请刷新重试。';});
 // Read-only diagnostics expose observable navigation, not hidden state mutations.
 window.fuchun3d=Object.freeze({getState:()=>({...state,position:camera.position.toArray(),objects:world.root.children.length,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}),isNavigable:(x,z)=>world.canMove(x,z)});
 if(document.modelContext?.registerTool){try{const lifecycle=new AbortController();document.modelContext.registerTool({name:'navigate_painting',description:'Enter the painting or return to the river landing.',inputSchema:{type:'object',properties:{destination:{type:'string',enum:['river','landing']}},required:['destination'],additionalProperties:false},execute:input=>{if(!input||!['river','landing'].includes(input.destination))throw new Error('Invalid destination');input.destination==='river'?enter():reset();return{entered:state.entered,x:state.x,z:state.z};}},{signal:lifecycle.signal});window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true});}catch(e){console.info('Optional model context unavailable',e);}}
